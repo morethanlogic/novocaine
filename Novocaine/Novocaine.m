@@ -60,6 +60,7 @@ static Novocaine *audioManager = nil;
 @synthesize inputBlock, outputBlock;
 @synthesize samplingRate;
 @synthesize isInterleaved;
+@synthesize isSetUp;
 @synthesize numBytesPerSample;
 @synthesize inData;
 @synthesize outData;
@@ -211,11 +212,34 @@ static Novocaine *audioManager = nil;
 	}
 }
 
+- (void)teardownAudio {
+  if (!isSetUp)
+    return;
+  
+#if defined ( USING_IOS )
+
+  // Remove a property listener, to listen to changes to the session
+  CheckError( AudioSessionRemovePropertyListenerWithUserData(kAudioSessionProperty_AudioRouteChange, sessionPropertyListener, self), "Couldn't remove audio session property listener");
+  
+  CheckError( AudioUnitReset(self.inputUnit, kAudioUnitScope_Global, 0), "Couldn't reset audio unit");
+  CheckError( AudioUnitUninitialize(self.inputUnit), "Couldn't uninitialize audio unit");
+  
+  self.inputUnit = nil;
+  
+#elif defined ( USING_OSX )
+
+#endif
+  
+  isSetUp = NO;
+}
+
 
 - (void)setupAudio
 {
-    
-    
+  
+  if (isSetUp)
+    return;
+  
     // --- Audio Session Setup ---
     // ---------------------------
     
@@ -248,7 +272,7 @@ static Novocaine *audioManager = nil;
     
     
 #endif
-    
+  
     
     
     // ----- Audio Unit Setup -----
@@ -556,8 +580,8 @@ static Novocaine *audioManager = nil;
     CheckError(AudioUnitInitialize(outputUnit), "Couldn't initialize the output unit");
 #endif
     
-        
-	
+  
+	isSetUp = YES;
 }
 
 #if defined (USING_OSX)

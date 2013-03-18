@@ -145,6 +145,7 @@ typedef void (^InputBlock)(float *data, UInt32 numFrames, UInt32 numChannels);
 @property UInt32 numOutputChannels;
 @property Float64 samplingRate;
 @property BOOL isInterleaved;
+@property BOOL isSetUp;
 @property UInt32 numBytesPerSample;
 @property AudioStreamBasicDescription inputFormat;
 @property AudioStreamBasicDescription outputFormat;
@@ -173,6 +174,7 @@ typedef void (^InputBlock)(float *data, UInt32 numFrames, UInt32 numChannels);
 - (void)play;
 - (void)pause;
 - (void)setupAudio;
+- (void)teardownAudio;
 - (void)ifAudioInputIsAvailableThenSetupAudioSession;
 
 #if defined ( USING_IOS )
