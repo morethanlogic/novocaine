@@ -177,7 +177,7 @@ static Novocaine *audioManager = nil;
     
 #if defined ( USING_IOS )
     CheckError( AudioSessionInitialize(NULL, NULL, sessionInterruptionListener, self), "Couldn't initialize audio session");
-    [self checkAudioSource];    
+    [self checkAudioSource];
 #elif defined ( USING_OSX )
     // TODO: grab the audio device
     [self enumerateAudioDevices];
@@ -212,22 +212,31 @@ static Novocaine *audioManager = nil;
 	}
 }
 
-- (void)teardownAudio {
+- (void) teardownAudio {
   if (!isSetUp)
     return;
   
+  [self pause];
+  
+  NSLog(@"Tearing down audio session");
+  
+  // Set the audio session not active
+  CheckError( AudioSessionSetActive(NO), "Couldn't de-activate the audio session");
+  
 #if defined ( USING_IOS )
-
   // Remove a property listener, to listen to changes to the session
   CheckError( AudioSessionRemovePropertyListenerWithUserData(kAudioSessionProperty_AudioRouteChange, sessionPropertyListener, self), "Couldn't remove audio session property listener");
-  
-  CheckError( AudioUnitReset(self.inputUnit, kAudioUnitScope_Global, 0), "Couldn't reset audio unit");
-  CheckError( AudioUnitUninitialize(self.inputUnit), "Couldn't uninitialize audio unit");
-  
+#endif
+
+  // Uninitialize and dispose the audio input unit
+  CheckError( AudioUnitUninitialize(self.inputUnit), "Couldn't uninitialize audio input unit");
+  CheckError( AudioComponentInstanceDispose(self.inputUnit), "Couldn't dispose of audio input unit");
   self.inputUnit = nil;
   
-#elif defined ( USING_OSX )
-
+#if defined ( USING_OSX )
+  CheckError( AudioUnitUninitialize(self.outputUnit), "Couldn't uninitialize audio output unit");
+  CheckError( AudioComponentInstanceDispose(self.outputUnit), "Couldn't dispose of audio output unit");
+  self.outputUnit = nil;
 #endif
   
   isSetUp = NO;
@@ -239,6 +248,8 @@ static Novocaine *audioManager = nil;
   
   if (isSetUp)
     return;
+  
+  NSLog(@"Setting up audio session");
   
     // --- Audio Session Setup ---
     // ---------------------------
@@ -579,7 +590,6 @@ static Novocaine *audioManager = nil;
 #if defined ( USING_OSX )
     CheckError(AudioUnitInitialize(outputUnit), "Couldn't initialize the output unit");
 #endif
-    
   
 	isSetUp = YES;
 }
@@ -843,7 +853,8 @@ void sessionPropertyListener(void *                  inClientData,
 // To be run ONCE per session property change and once on initialization.
 - (void)checkSessionProperties
 {	
-    
+    NSLog(@"Checking session properties");
+  
     // Check if there is input, and from where
     [self checkAudioSource];
     
