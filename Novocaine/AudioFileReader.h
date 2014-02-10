@@ -37,6 +37,7 @@
 // ----- Read-only ------
 
 @property (nonatomic, copy, readonly)   NSURL *audioFileURL;
+@property (nonatomic, assign, readonly) SInt64 currentFileTime;
 @property (nonatomic, assign, readonly, getter=getDuration) float duration;
 @property (nonatomic, assign, readonly) float samplingRate;
 @property (nonatomic, assign, readonly) UInt32 numChannels;
