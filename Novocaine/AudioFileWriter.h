@@ -52,6 +52,6 @@
 
 - (void)record;
 - (void)pause;
-
+- (void)stop;
 
 @end
