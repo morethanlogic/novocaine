@@ -61,6 +61,9 @@ static Novocaine *audioManager = nil;
 @property (nonatomic, assign, readwrite) float *inData;
 @property (nonatomic, assign, readwrite) float *outData;
 
+@property (nonatomic, assign, readwrite) BOOL isSetup;
+
+
 #if defined (USING_OSX)
 @property (nonatomic, assign) AudioDeviceID *deviceIDs;
 @property (nonatomic, strong) NSMutableArray *deviceNames;
@@ -93,6 +96,10 @@ static Novocaine *audioManager = nil;
 			audioManager = [[Novocaine alloc] init];
 		}
 	}
+    
+    if (![audioManager isSetUp]) {
+        [audioManager setupAudioUnits];
+    }
     return audioManager;
 }
 
@@ -572,6 +579,9 @@ static Novocaine *audioManager = nil;
     CheckError(AudioUnitInitialize(_outputUnit), "Couldn't initialize the output unit");
 #endif
     
+    
+    _isSetUp = YES;
+    
 }
 
 #if defined (USING_OSX)
@@ -951,6 +961,37 @@ void sessionInterruptionListener(void *inClientData, UInt32 inInterruption) {
 	return [NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES) lastObject];
 }
 
+
+- (void) teardownAudio {
+    
+    if (!_isSetUp)
+        return;
+    
+    [self pause];
+    
+    NSLog(@"Tearing down audio session");
+    
+    // Set the audio session not active
+    //CheckError( AudioSessionSetActive(NO), "Couldn't de-activate the audio session");
+    
+#if defined ( USING_IOS )
+    // Remove a property listener, to listen to changes to the session
+    CheckError( AudioSessionRemovePropertyListenerWithUserData(kAudioSessionProperty_AudioRouteChange, sessionPropertyListener, self), "Couldn't remove audio session property listener");
+#endif
+    
+    // Uninitialize and dispose the audio input unit
+    CheckError( AudioUnitUninitialize(self.inputUnit), "Couldn't uninitialize audio input unit");
+    CheckError( AudioComponentInstanceDispose(self.inputUnit), "Couldn't dispose of audio input unit");
+    self.inputUnit = nil;
+    
+#if defined ( USING_OSX )
+    CheckError( AudioUnitUninitialize(self.outputUnit), "Couldn't uninitialize audio output unit");
+    CheckError( AudioComponentInstanceDispose(self.outputUnit), "Couldn't dispose of audio output unit");
+    self.outputUnit = nil;
+#endif
+    
+    _isSetUp = NO;
+}
 
 @end
 
